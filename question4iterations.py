@@ -10,12 +10,11 @@ https://medium.com/@mathcube7/two-lines-of-python-to-solve-the-schrödinger-equa
 """
 planck_constant = 4.135668*10**(-15)
 speed_of_light = 3*10**8
-m_e = 9.1 * 10**(-31)
 
-hamiltonian_constant = -planck_constant**2/(2*m_e)
 
 well_depth = 1 #in eV
-well_width_guess = 42
+well_depth = well_depth/27.211 # in a.u.
+well_width_guess = 51 # in a.u.
 
 wavelength = 10.6 # in µm
 
@@ -23,9 +22,10 @@ iterations = 20
 optimal_width = well_width_guess
 optimal_wavelength = 0
 difference_with_target = wavelength
+optimal_solutions = 0
 
 
-for well_width in np.linspace(well_width_guess - 0.5, well_width_guess + 0.5, iterations):
+for well_width in np.linspace(well_width_guess - 1, well_width_guess + 1, iterations):
     x = np.linspace(-well_width, well_width, 1001) # define our grid
     dx = x[1]-x[0]
 
@@ -35,15 +35,17 @@ for well_width in np.linspace(well_width_guess - 0.5, well_width_guess + 0.5, it
 
     d2_dx2 = FinDiff(0, dx, 2)
 
-    operator = hamiltonian_constant * d2_dx2.matrix(x.shape) + potential_matrix
-    energies, states = eigs( operator, k=2, which='SR')
+    operator = -0.5 * d2_dx2.matrix(x.shape) + potential_matrix
+    energies, states = eigs( operator, k=3, which='SR')
 
 
-    energy_diff_1_2 = energies[1] - energies[0]
+    energy_diff_1_2 = energies[1] - energies[0] # in a.u.
+    energy_diff_1_2 = energy_diff_1_2 * 27.211 # in eV
 
-    current_wavelength = ((planck_constant * speed_of_light)/energy_diff_1_2) * 10**6
+    current_wavelength = (((planck_constant * speed_of_light)/energy_diff_1_2) * 10**6).real
 
     if current_wavelength > wavelength + 1:
+        print("break")
         break
 
     current_difference = abs(wavelength - current_wavelength)
@@ -54,17 +56,25 @@ for well_width in np.linspace(well_width_guess - 0.5, well_width_guess + 0.5, it
         difference_with_target = current_difference
         optimal_width = well_width
         optimal_wavelength = current_wavelength
+        optimal_solutions = energies, states
 
-print(f"Optimal well width is: {optimal_width}")
-print(f"Optimal emitted wavelength is: {optimal_wavelength}")
 
-# plt.plot(x, states[:, 0].real, label=r'$\psi_0$')
-# plt.plot(x, states[:, 1].real, label=r'$\psi_1$')
-# # plt.plot(x, states[:, 2].real, label=r'$\psi_2$')
-# plt.grid()
-# plt.legend()
-# plt.xlim(min(x), max(x))
-# plt.show()
+
+optimal_width_si = optimal_width * 0.529177
+
+print(f"Optimal well width is: {optimal_width} a.u.")
+print(f"Optimal well width is: {optimal_width_si} angstrom")
+print(f"Optimal emitted wavelength is: {optimal_wavelength} µm")
+
+energies, states = optimal_solutions
+
+plt.plot(x, states[:, 0].real, label=r'$\psi_0$')
+plt.plot(x, states[:, 1].real, label=r'$\psi_1$')
+plt.plot(x, states[:, 2].real, label=r'$\psi_2$')
+plt.grid()
+plt.legend()
+plt.xlim(min(x), max(x))
+plt.show()
 
 
 # fig = plt.figure(figsize=(5,8))
