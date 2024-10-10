@@ -10,13 +10,13 @@ https://medium.com/@mathcube7/two-lines-of-python-to-solve-the-schrödinger-equa
 """
 
 planck_constant = 4.135668*10**(-15) # in eV
-speed_of_light = 3*10**8
+speed_of_light = 299792458
 
 well_depth = 1 #in eV
-well_depth = well_depth/27.211 # in a.u.
+well_depth = well_depth/27.211386245988 # in a.u.
 
 
-well_width = 50.92 # in a.u.
+well_width = 50.95 # in a.u.
 
 
 
@@ -34,11 +34,11 @@ operator = -0.5 * d2_dx2.matrix(x.shape) + potential_matrix
 energies, states = eigs( operator, k=3, which='SR')
 
 energy_diff_1_2 = energies[1] - energies[0] # in a.u.
-energy_diff_1_2 = energy_diff_1_2 * 27.211 # in eV
+energy_diff_1_2 = energy_diff_1_2 * 27.211386245988 # in eV
 
 wavelength =  (((planck_constant * speed_of_light)/energy_diff_1_2) * 10**6).real # in µm
 
-well_width_si = well_width * 0.529177
+well_width_si = well_width * 0.5291772105
 
 print(f"Wavelength is: {wavelength} µm")
 print(f"Well width is: {well_width_si} angstrom")
