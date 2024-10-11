@@ -19,14 +19,14 @@ well_width =  3 # in nm
 well_width =  3/0.005291772  # in a.u.
 barrier_width_average = 3 # in nm
 
-barrier_linspace = np.linspace(barrier_width_average - 2.5, barrier_width_average - 2, 1000)
+barrier_linspace = np.linspace(barrier_width_average - 2.5, barrier_width_average - 2.4, 20)
 n_modes = 5
 
 prob_crosstalk = dict({})
 
 
 
-x = np.linspace(-1 * well_width, 1 * well_width, 1001) # define our grid
+x = np.linspace(-5 * well_width, 5 * well_width, 3001) # define our grid
 dx = x[1]-x[0]
 
 potential_vector = np.where(np.abs(x)<=(well_width/2), 0, well_depth)
@@ -38,6 +38,10 @@ d2_dx2 = FinDiff(0, dx, 2)
 operator = -0.5 * d2_dx2.matrix(x.shape) + potential_matrix
 energies, states = eigs( operator, k=n_modes, which='SR')
 
+plt.plot(x, states[:, 0].real, label=r'$\psi_0$')
+plt.plot(x, states[:, 1].real, label=r'$\psi_1$')
+plt.plot(x, states[:, 2].real, label=r'$\psi_2$')
+plt.show()
 for barrier_width in barrier_linspace:
     barrier_width_au = barrier_width/0.005291772 # in a.u.
     print(f"Iteration avec {barrier_width} nm ...")
@@ -62,7 +66,7 @@ for n in range(n_modes):
         prob_array = prob_crosstalk[barrier_width]
         prob_at_mode = prob_array[n]
         prob_at_n.append(prob_at_mode)
-    plt.plot(barrier_linspace, prob_at_n, label=f"E_{n+1}")
+    plt.scatter(barrier_linspace, prob_at_n, label=f"E_{n+1}")
 
 plt.grid()
 plt.legend()
