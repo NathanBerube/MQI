@@ -10,7 +10,7 @@ https://medium.com/@mathcube7/two-lines-of-python-to-solve-the-schrödinger-equa
 
 x = np.linspace(-20, 20, 1001) # define our grid
 dx = x[1]-x[0]
- 
+
 # d_dx = FinDiff(0, 1, 1)
 # print(d_dx.matrix(x.shape).toarray())
 d2_dx2 = FinDiff(0, dx, 2)
