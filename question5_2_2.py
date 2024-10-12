@@ -1,81 +1,103 @@
 import numpy as np
-from scipy.sparse import diags
-from scipy.sparse.linalg import eigs
-from findiff import FinDiff
+from scipy.optimize import fsolve
+import math
 import matplotlib.pyplot as plt
 
-""" 
-Reference
-https://medium.com/@mathcube7/two-lines-of-python-to-solve-the-schrödinger-equation-2bced55c2a0e
-"""
+# Largeur du puits de potentiel (en unités atomiques)
+L = 56.6918  # L en a0 (longueur de Bohr)
 
-planck_constant = 4.135668*10**(-15) # in eV
-speed_of_light = 299792458
+# Profondeur du puits de potentiel (en unités atomiques, 1 UA = 27.2114 eV)
+V = 3*0.0367502  # V0 en Hartree (par exemple, 0.5 Hartree)
 
-well_depth = 1 #in eV
-well_depth = well_depth/27.211386245988 # in a.u.
+# Définir la cotangente
+def cot(x):
+    return 1 / np.tan(x)
 
-well_width =  3 # in nm
-well_width =  3/0.005291772  # in a.u.
-barrier_width_average = 3 # in nm
+# Fonctions transcendantes pour les états pairs
+def eq_pair(E):
+    k = np.sqrt(2 * E)
+    kappa = np.sqrt(2 * (V - E))
+    return k * cot(k * L / 2) + kappa
 
-barrier_linspace = np.linspace(barrier_width_average - 2.5, barrier_width_average - 2.4, 20)
-n_modes = 5
+# Fonctions transcendantes pour les états impairs
+def eq_impair(E):
+    k = np.sqrt(2 * E)
+    kappa = np.sqrt(2 * (V - E))
+    return k * np.tan(k * L / 2) - kappa
 
-prob_crosstalk = dict({})
+# Deviner des valeurs initiales pour E (en Hartree)
+# initial_guesses_impair = [0.0013, 0.012, 0.033, 0.064, 0.103]
+# initial_guesses_pair = [0.0053, 0.021, 0.047, 0.083]
+initial_guesses = [0.0013, 0.0053, 0.012, 0.021, 0.033, 0.047, 0.064, 0.083, 0.103]
+energies = []
+T = []
+barriers = np.linspace(0, 5, 5001)
 
+n = 1
+for guess in initial_guesses:
+    if (n % 2) == 1:
+        # print(f"{n} is odd")
+        energies.append(fsolve(eq_impair, guess)[0])
+    else:
+        energies.append(fsolve(eq_pair, guess)[0])
 
+    t = []
 
-x = np.linspace(-5 * well_width, 5 * well_width, 3001) # define our grid
-dx = x[1]-x[0]
+    for barrier in barriers:
+        t.append((1 + V**2/(4*energies[-1]*(V - energies[-1])) * (math.sinh(barrier*18.8973*math.sqrt(2*(V - energies[-1]))))**2)**-1 * 100)
 
-potential_vector = np.where(np.abs(x)<=(well_width/2), 0, well_depth)
-# plt.plot(x, potential_vector)
-potential_matrix = diags(potential_vector)
+    plt.plot(barriers, t, label=r'$E = $' + f"{energies[-1]*27.2114:.3f} eV")
 
-d2_dx2 = FinDiff(0, dx, 2)
-
-operator = -0.5 * d2_dx2.matrix(x.shape) + potential_matrix
-energies, states = eigs( operator, k=n_modes, which='SR')
-
-plt.plot(x, states[:, 0].real, label=r'$\psi_0$')
-plt.plot(x, states[:, 1].real, label=r'$\psi_1$')
-plt.plot(x, states[:, 2].real, label=r'$\psi_2$')
-plt.show()
-for barrier_width in barrier_linspace:
-    barrier_width_au = barrier_width/0.005291772 # in a.u.
-    print(f"Iteration avec {barrier_width} nm ...")
-
-    start_pos_integration = well_width/2 + barrier_width_au
-
-    index_pos_integration = np.argmin(np.abs(x - start_pos_integration))
-
-    prob = []
-    for i in range(n_modes):
-        state = states[:, i].real
-        prob_density = np.abs(state)**2
-        prob_beyond = np.sum(dx * prob_density[index_pos_integration:])
-        prob.append(prob_beyond)
+    n += 1
 
 
-    prob_crosstalk[barrier_width] = prob
 
-for n in range(n_modes):
-    prob_at_n = []
-    for barrier_width in barrier_linspace:
-        prob_array = prob_crosstalk[barrier_width]
-        prob_at_mode = prob_array[n]
-        prob_at_n.append(prob_at_mode)
-    plt.scatter(barrier_linspace, prob_at_n, label=f"E_{n+1}")
+# for barrier in barriers:
+#     t = []
 
-plt.grid()
+#     for E in energies:
+#         t.append((1 + V**2/(4*E*(V - E)) * (math.sinh(barrier*18.8973*math.sqrt(2*(V - E))))**2)**-1 * 100)
+
+#     T.append(t)
+#     plt.scatter(energies, t, label=r'$d = $' + f"{barrier} nm")
+
+# l = 0
+
+# for E in energies:
+#         energies[l] = E*27.2114
+#         l += 1
+
+# print(energies)
+# print(T)
+
+# for t in T:
+#     plt.scatter(energies, t, label=r'$d = $' + f"{width:.2f} nm")
+    
+# plt.grid()
 plt.legend()
-# plt.ylim()
-# plt.xlim(barrier_width_average - 0.1, barrier_width_average + 0.1)
-
 plt.yscale("log")
-plt.xlabel(r"Épaisseur $d$", fontsize=20)
-plt.ylabel(r'Probabilité [-]', fontsize=20)
+plt.xlabel(r"Épaisseur de la barrière [nm]", fontsize=14)
+plt.ylabel(r'Transmission [%]', fontsize=14)
 plt.show()
 
+# n = 1
+# # Résoudre les équations
+# for k in range(len(initial_guesses_impair)):
+#     # États impairs
+#     E_impair_solution = fsolve(eq_impair, initial_guesses_impair[k])
+    
+#     # Afficher les résultats (en Hartree)
+#     print(f"Niveau d'énergie impair {n} : {E_impair_solution[0]:.5f} Hartree")
 
+#     n += 1
+
+# n = 1
+# # Résoudre les équations
+# for k in range(len(initial_guesses_pair)):
+#     # États pairs
+#     E_pair_solution = fsolve(eq_pair, initial_guesses_pair[k])
+    
+#     # Afficher les résultats (en Hartree)
+#     print(f"Niveau d'énergie pair {n} : {E_pair_solution[0]:.5f} Hartree")
+
+#     n += 1
